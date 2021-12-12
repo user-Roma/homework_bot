@@ -32,7 +32,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-RETRY_TIME = 5
+RETRY_TIME = 555
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -125,7 +125,7 @@ def main() -> None:
                 raise CheckTokensError(var)
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = 0
+    current_timestamp = int(time.time())
     error_filter = None
 
     while True:
