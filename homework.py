@@ -145,6 +145,7 @@ def check_tokens() -> bool:
     # Можно сразу вернуть результат return a and b and c:
     # это не вернет False в случае отсутствия последней переменной,
     # как просят по условии - не пойму как это работает?
+    # мои тесты этот вариант не проходит..
     return PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID
 
 
