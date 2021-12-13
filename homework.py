@@ -1,4 +1,5 @@
 import logging
+from http import HTTPStatus
 import os
 import requests
 import sys
@@ -48,11 +49,15 @@ def send_message(bot, message):
     """Sends a message to Telegram chat."""
     if message is None:
         return
-    bot.send_message(
-        chat_id=TELEGRAM_CHAT_ID,
-        text=message
-    )
-    logger.info('Successful message sending')
+    try:
+        bot.send_message(
+            chat_id=TELEGRAM_CHAT_ID,
+            text=message
+        )
+        logger.info('Successful message sending')
+    except Exception as error:
+        logger.exception(error)
+        raise
 
 
 def get_api_answer(current_timestamp) -> dict:
@@ -60,11 +65,16 @@ def get_api_answer(current_timestamp) -> dict:
     timestamp = current_timestamp
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    # не совсем понял комметарий про проверку статуса, с 404 я делаю проверку
+    # не упал ли сервер и вызываю исключение, в случае когда он упал или тут
+    # нужно полностью убрать сам вызов исключения и делать только лог?
     try:
-        if response.status_code == 404:
+        if response.status_code == HTTPStatus.NOT_FOUND:
             raise ApiNotFoundError
-        if response.status_code != 200:
+    # тут оставляем вызов исключения?
+        if response.status_code != HTTPStatus.OK:
             raise ApiConnectionFailed(response.status_code)
+    # какое тут может случиться исключение?
         return response.json()
     except Exception as error:
         logger.exception(error)
@@ -73,13 +83,32 @@ def get_api_answer(current_timestamp) -> dict:
 
 def check_response(response) -> list:
     """Checking API answer."""
+    # подскажите, как тогда луче оформить,
+    # чтобы не писать вывод в лог в каждо из условий?
+    # Может у вас ест ссылка на пример?
+    # Потому что, как я вижу, это будет:
+
+    # if not isinstance(response, dict):
+    #     logger.exception(ResponseNotDictError(response))
+    #     raise ResponseNotDictError(response)
+    # if 'homeworks' not in response:
+    #     logger.exception(KeyNotExistsError('homeworks'))
+    #     raise KeyNotExistsError('homeworks')
+    # if not response['homeworks']:
+    #     return
+    # homework = response.get('homeworks')
+    # if not isinstance(homework, list):
+    #     logger.exception(HomeworksNotListError(homework))
+    #     raise HomeworksNotListError(homework)
+    # return homework[0]
+
     try:
         if not isinstance(response, dict):
             raise ResponseNotDictError(response)
         if 'homeworks' not in response:
             raise KeyNotExistsError('homeworks')
-        if response['homeworks'] == []:
-            return []
+        if not response['homeworks']:
+            return
         homework = response.get('homeworks')
         if not isinstance(homework, list):
             raise HomeworksNotListError(homework)
@@ -92,12 +121,14 @@ def check_response(response) -> list:
 def parse_status(homework) -> str:
     """Generate message for sending."""
     try:
-        if homework == []:
+        if not homework:
             message = 'No new statuses from Master'
             logger.debug(message)
             return
         if 'homework_name' not in homework:
             raise KeyNotExistsError('homework_name')
+        if 'status' not in homework:
+            raise KeyNotExistsError('status')
         homework_name = homework.get('homework_name')
         homework_status = homework.get('status')
         if homework_status not in HOMEWORK_STATUSES:
@@ -111,14 +142,15 @@ def parse_status(homework) -> str:
 
 def check_tokens() -> bool:
     """Checks the availability of env variables."""
-    if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
-        return True
-    return False
+    # Можно сразу вернуть результат return a and b and c:
+    # это не вернет False в случае отсутствия последней переменной,
+    # как просят по условии - не пойму как это работает?
+    return PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID
 
 
 def main() -> None:
     """The bot logic."""
-    if check_tokens() is False:
+    if not check_tokens():
         for var in MANDATORY_ENV_VARS:
             if var not in os.environ:
                 logger.critical(CheckTokensError(var))
@@ -142,8 +174,6 @@ def main() -> None:
                 error_filter = message
                 send_message(bot, message)
             time.sleep(RETRY_TIME)
-        else:
-            pass
 
 
 if __name__ == '__main__':

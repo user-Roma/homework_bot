@@ -14,8 +14,9 @@ from exceptions import (
 
 time_stamp = 0
 current_time_stamp = int(time.time())
-hw_status_zero = ('Изменился статус проверки работы "hw05_final-master.zip". '
-                  'Работа проверена: ревьюеру всё понравилось. Ура!')
+hw_status_zero = ('Изменился статус проверки работы '
+                  '"user-Roma__homework_bot.zip". Работа '
+                  'проверена: у ревьюера есть замечания.')
 
 
 class TestHomeworkBot(unittest.TestCase):
@@ -37,10 +38,9 @@ class TestHomeworkBot(unittest.TestCase):
     def test_check_tokens(self) -> None:
         """Checking check_tokens result."""
         call = check_tokens()
+        print(call)
         check = ('PRACTICUM_TOKEN' and 'TELEGRAM_TOKEN'
                  and 'TELEGRAM_CHAT_ID' in os.environ)
-        result = bool
-        self.assertEqual(type(call), result)
         self.assertEqual(call, check)
 
     def test_get_api_answer(self) -> None:
@@ -78,12 +78,13 @@ class TestHomeworkBot(unittest.TestCase):
         """Checking parse_status result."""
         call = parse_status(check_response(self.response_zero))
         result = hw_status_zero
+        print(call)
         self.assertEqual(call, result)
 
         """Checking parse_status Exceptions."""
         error_cases = {
             KeyNotExistsError: {'foor': 'bar'},
-            HomeworkStatusError: {'homework_name': 'name'},
+            HomeworkStatusError: {'homework_name': 'name', 'status': '123'},
         }
         for error, case in error_cases.items():
             with self.subTest(field=case):
