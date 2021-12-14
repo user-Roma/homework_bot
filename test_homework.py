@@ -81,6 +81,9 @@ class TestHomeworkBot(unittest.TestCase):
         print(call)
         self.assertEqual(call, result)
 
+        call = parse_status([])
+        print(call)
+
         """Checking parse_status Exceptions."""
         error_cases = {
             KeyNotExistsError: {'foor': 'bar'},
